@@ -105,58 +105,52 @@ def describe_floor(location, objects, object_locations):
         if is_at(object, location, object_locations):
             print 'You see a ', object, ' on the floor.'
 
-def look(args):
+def look():
     describe_location(location, game_map)
     describe_paths(location, game_map)
     describe_floor(location, objects, locations)
 
-def walk(args):
+def walk(direction):
     global location
-    direction = args[0]
     for path in game_map[location][1]:
         if path[0] == direction:
             if not path[3]:
                 print 'That way is blocked'
                 return
             location = path[2]
-            look([])
+            look()
             return
     print 'You cannot go that way.'
 
-def pickup(args):
-    for object in args:
-        #print 'Try get ', object, ' locations ', locations, 'current', location
-        if is_at(object, location, locations):
-            locations[object] = 'body'
-            print 'You are now carrying the ', object
-        else:
-            print 'You cannot get that.'
+def pickup(object):
+    #print 'Try get ', object, ' locations ', locations, 'current', location
+    if is_at(object, location, locations):
+        locations[object] = 'body'
+        print 'You are now carrying the ', object
+    else:
+        print 'You cannot get that.'
 
-def drop(args):
-    for object in args:
-        if is_at(object, 'body', locations):
-            locations[object] = location
-            print 'You dropped the ', object, ' in the ', location
-        else:
-            print 'You don\'t have the ', object
+def drop(object):
+    if is_at(object, 'body', locations):
+        locations[object] = location
+        print 'You dropped the ', object, ' in the ', location
+    else:
+        print 'You don\'t have the ', object
+
 
 def have(object):
     return is_at(object, 'body', locations)
 
 
-def inventory(args):
+def inventory():
     for object in objects:
         if have(object):
             print object
 
 
 def conditional_game_action(command, subject, object, place, need_subject, flag, \
-                            condition, success_message, fail_message, args):
-    if len(args) < 2:
-        print 'How?'
-        return False
-
-    if args[0] != object or args[1] != subject:
+                            condition, success_message, fail_message, s, o):
+    if o != object or s != subject:
         print 'You cannot do that'
         return False
 
@@ -182,24 +176,49 @@ def conditional_game_action(command, subject, object, place, need_subject, flag,
         return False
 
 def game_action(command, subject, object, place, need_subject, flag, \
-                success_message, args):
+                success_message, s, o):
     return conditional_game_action(command, subject, object, place, need_subject, \
-                                   flag, True, success_message, '', args)
+                                   flag, True, success_message, '', s, o)
 
-commands = {
+commands0 = {
     'inventory': inventory,
+    'look': look,
+}
+
+commands1 = {
     'get': pickup,
     'take': pickup,
     'drop': drop,
     'walk': walk,
     'go': walk,
     'run': walk,
-    'look': look,
-}
+    }
+
+commands2 = {}
 
 def add_commands(c):
     global commands
     commands.update(c)
+
+def add_command(name, handler, num_args):
+    """
+    Register a command handler. name can be a string or list of strings.
+    """
+    global commands0, commands1, commands2
+    if type(name) is list:
+        names = name
+    else:
+        names = [name]
+    for verb in names:
+        if num_args == 0:
+            commands0[verb] = handler
+        elif num_args == 1:
+            commands1[verb] = handler
+        elif num_args == 2:
+            commands2[verb] = handler
+        else:
+            print 'num_args must be 0, 1 or 2'
+            break
 
 def end_game():
     global game_over
@@ -226,17 +245,38 @@ def execute(line):
         tokens = reversed([word for word in tokens if not word in ['with']])
 
         tokens = [word for word in tokens if not word in ['with']]
-    if verb in commands:
-        commands[verb](tokens)
-        if winning_object != '' and have(winning_object):
-            print winning_message
-            end_game()
-    else:
-        print 'I didn\'t understand that'
+
+    if len(tokens) == 0:
+        if verb in commands0:
+            commands0[verb]()
+        elif verb in commands1 or verb in commands2:
+            print "%s what?" % verb
+        else:
+            print 'I don\'t know how to %s' % line
+    elif len(tokens) == 1:
+        if verb in commands1:
+            commands1[verb](tokens[0])
+        elif verb in commands2:
+            print '%s %s how?' % (verb, tokens[0])
+        elif verb in commands0:
+            print 'I\'m not sure what you mean'
+        else:
+            print 'I don\'t know how to %s' % line
+    elif len(tokens) == 2:
+        if verb in commands2:
+            commands2[verb](tokens[1], tokens[0])
+        elif verb in commands0 or verb in commands1:
+            print 'I\'m not sure what you mean'
+        else:
+            print 'I don\'t know how to %s' % line
+
+    if winning_object != '' and have(winning_object):
+        print winning_message
+        end_game()
 
 
 def run_game():
-    look([])
+    look()
 
     while not game_over:
         line = raw_input()
