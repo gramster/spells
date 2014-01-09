@@ -31,6 +31,8 @@ replay([
     'unlock gate',
     'unlock gate with key',
     'go outside',
+    'get crowbar',
+    'kill beast with crowbar',
     'go',
     'get cake'
 ])
