@@ -1,3 +1,4 @@
+__author__ = 'gram'
 
 debug = False
 objects = []
@@ -8,6 +9,11 @@ location = ''
 game_over = False
 winning_object = ''
 winning_message = ''
+post_handler = None
+
+
+def set_post_command_handler(h):
+    post_handler = h
 
 def set_goal(object, message):
     global winning_message, winning_object
@@ -88,54 +94,56 @@ def set_location(v):
     location = v
 
 def describe_location(location, game_map):
-    print game_map[location][0]
+    return game_map[location][0] + '\n'
 
 def describe_path(path):
-    print 'There is a ', path[1], ' going ', path[0], ' from here.'
+    return 'There is a %s going %s from here.\n' % (path[1], path[0])
 
 def describe_paths(location, game_map):
+    result = ''
     for path in game_map[location][1]:
-        describe_path(path)
+        result = result + describe_path(path)
+    return result
 
 def is_at(object, location, object_locations):
     return object in object_locations and object_locations[object] == location
 
 def describe_floor(location, objects, object_locations):
+    result = ''
     for object in objects:
         if is_at(object, location, object_locations):
-            print 'You see a ', object, ' on the floor.'
+            result = result + ('You see a %s on the floor.\n' % object)
+    return result
 
 def look():
-    describe_location(location, game_map)
-    describe_paths(location, game_map)
-    describe_floor(location, objects, locations)
+    return describe_location(location, game_map) + \
+        describe_paths(location, game_map) + \
+        describe_floor(location, objects, locations)
 
 def walk(direction):
     global location
     for path in game_map[location][1]:
         if path[0] == direction:
             if not path[3]:
-                print 'That way is blocked'
-                return
+                return 'That way is blocked.\n'
             location = path[2]
-            look()
-            return
-    print 'You cannot go that way.'
+            return look()
+    return 'You cannot go that way.\n'
 
 def pickup(object):
     #print 'Try get ', object, ' locations ', locations, 'current', location
     if is_at(object, location, locations):
         locations[object] = 'body'
-        print 'You are now carrying the ', object
+        return 'You are now carrying the %s\n' % object
     else:
-        print 'You cannot get that.'
+        return 'You cannot get that.\n'
 
 def drop(object):
     if is_at(object, 'body', locations):
         locations[object] = location
-        print 'You dropped the ', object, ' in the ', location
+        return 'You dropped the %s in the %s\n' % (object, location)
     else:
-        print 'You don\'t have the ', object
+        return 'You don\'t have the %s\n' % object
 
 
 def have(object):
@@ -148,36 +156,32 @@ def inventory():
             print object
 
 
-def conditional_game_action(command, subject, object, place, need_subject, flag, \
+def conditional_game_action(command, subject, object, place, need_subject, flag,
                             condition, success_message, fail_message, s, o):
     if o != object or s != subject:
-        print 'You cannot do that'
-        return False
+        return False, 'You cannot do that.\n'
 
     if flag:
-        print 'You have already done that'
-        return True
+        return True, 'You have already done that.\n'
+
     if not have(object):
-        print 'You don\'t have the ', object
-        return False
+        return False, ('You don\'t have the %s\n' % object)
+
     if need_subject and not have(subject):
-        print 'You don\'t have the ', subject
-        return False
+        return False, ('You don\'t have the %s\n' % subject)
 
     if place != 'any' and location != place:
-        print 'You cannot do that here.'
-        return False
+        return False, 'You cannot do that here.\n'
 
     if condition:
-        print success_message
-        return True
+        return True, success_message
     else:
-        print fail_message
-        return False
+        return False, fail_message
 
-def game_action(command, subject, object, place, need_subject, flag, \
+
+def game_action(command, subject, object, place, need_subject, flag,
                 success_message, s, o):
-    return conditional_game_action(command, subject, object, place, need_subject, \
+    return conditional_game_action(command, subject, object, place, need_subject,
                                    flag, True, success_message, '', s, o)
 
 commands0 = {
@@ -226,6 +230,7 @@ def end_game():
 
 
 def execute(line):
+    result = ''
     tokens = line.split(' ')
 
     # remove and save the first token; it is the verb.
@@ -248,31 +253,34 @@ def execute(line):
 
     if len(tokens) == 0:
         if verb in commands0:
-            commands0[verb]()
+            result = commands0[verb]()
         elif verb in commands1 or verb in commands2:
-            print "%s what?" % verb
+            return "%s what?\n" % verb
         else:
-            print 'I don\'t know how to %s' % line
+            return 'I don\'t know how to %s\n' % line
     elif len(tokens) == 1:
         if verb in commands1:
-            commands1[verb](tokens[0])
+            result = commands1[verb](tokens[0])
         elif verb in commands2:
-            print '%s %s how?' % (verb, tokens[0])
+            return '%s %s how?\n' % (verb, tokens[0])
         elif verb in commands0:
-            print 'I\'m not sure what you mean'
+            return 'I\'m not sure what you mean'
         else:
-            print 'I don\'t know how to %s' % line
+            return 'I don\'t know how to %s\n' % line
     elif len(tokens) == 2:
         if verb in commands2:
-            commands2[verb](tokens[1], tokens[0])
+            result = commands2[verb](tokens[1], tokens[0])
         elif verb in commands0 or verb in commands1:
-            print 'I\'m not sure what you mean'
+            return 'I\'m not sure what you mean.\n'
         else:
-            print 'I don\'t know how to %s' % line
+            return 'I don\'t know how to %s\n' % line
 
     if winning_object != '' and have(winning_object):
-        print winning_message
+        result = result + '\n' + winning_message
         end_game()
+    if post_handler:
+        result = result + post_handler()
+    return result
 
 
 def run_game():
@@ -280,12 +288,12 @@ def run_game():
 
     while not game_over:
         line = raw_input()
-        execute(line)
+        print execute(line)
 
 def replay(actions):
     for action in actions:
         print action
-        execute(action)
+        print execute(action)
 
 
 
