@@ -134,16 +134,16 @@ def pickup(object):
     #print 'Try get ', object, ' locations ', locations, 'current', location
     if is_at(object, location, locations):
         locations[object] = 'body'
-        return 'You are now carrying the %s\n' % object
+        return 'You are now carrying the %s.\n' % object
     else:
         return 'You cannot get that.\n'
 
 def drop(object):
     if is_at(object, 'body', locations):
         locations[object] = location
-        return 'You dropped the %s in the %s\n' % (object, location)
+        return 'You dropped the %s in the %s.\n' % (object, location)
     else:
-        return 'You don\'t have the %s\n' % object
+        return 'You don\'t have the %s.\n' % object
 
 
 def have(object):
@@ -165,10 +165,10 @@ def conditional_game_action(command, subject, object, place, need_subject, flag,
         return True, 'You have already done that.\n'
 
     if not have(object):
-        return False, ('You don\'t have the %s\n' % object)
+        return False, ('You don\'t have the %s.\n' % object)
 
     if need_subject and not have(subject):
-        return False, ('You don\'t have the %s\n' % subject)
+        return False, ('You don\'t have the %s.\n' % subject)
 
     if place != 'any' and location != place:
         return False, 'You cannot do that here.\n'
@@ -255,25 +255,25 @@ def execute(line):
         if verb in commands0:
             result = commands0[verb]()
         elif verb in commands1 or verb in commands2:
-            return "%s what?\n" % verb
+            return "%s what?\n" % verb.capitalize()
         else:
-            return 'I don\'t know how to %s\n' % line
+            return 'I don\'t know how to %s.\n' % line
     elif len(tokens) == 1:
         if verb in commands1:
             result = commands1[verb](tokens[0])
         elif verb in commands2:
-            return '%s %s how?\n' % (verb, tokens[0])
+            return '%s %s how?\n' % (verb.capitalize(), tokens[0])
         elif verb in commands0:
-            return 'I\'m not sure what you mean'
+            return 'I\'m not sure what you mean.'
         else:
-            return 'I don\'t know how to %s\n' % line
+            return 'I don\'t know how to %s.\n' % line
     elif len(tokens) == 2:
         if verb in commands2:
             result = commands2[verb](tokens[1], tokens[0])
         elif verb in commands0 or verb in commands1:
             return 'I\'m not sure what you mean.\n'
         else:
-            return 'I don\'t know how to %s\n' % line
+            return 'I don\'t know how to %s.\n' % line
 
     if winning_object != '' and have(winning_object):
         result = result + '\n' + winning_message
@@ -284,7 +284,7 @@ def execute(line):
 
 
 def run_game():
-    look()
+    print look()
 
     while not game_over:
         line = raw_input()
@@ -294,6 +294,18 @@ def replay(actions):
     for action in actions:
         print action
         print execute(action)
+
+def test(steps):
+    i = 0
+    for step in steps:
+        result = execute(step[0])
+        if result == step[1]:
+            print 'Pass ', i
+        else:
+            print 'Fail %d:\n\tExpected [%s]\n\tActual: [%s]' % (i, step[1], result)
+            break
+        i = i + 1
+
 
 
 
