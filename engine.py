@@ -7,18 +7,13 @@ non_debug_locations = {}
 game_map = {}
 location = ''
 game_over = False
-winning_object = ''
-winning_message = ''
 post_handler = None
 
 
 def set_post_command_handler(h):
+    global post_handler
     post_handler = h
 
-def set_goal(object, message):
-    global winning_message, winning_object
-    winning_message = message
-    winning_object = object
 
 def set_debug(v):
     global debug
@@ -275,9 +270,6 @@ def execute(line):
         else:
             return 'I don\'t know how to %s.\n' % line
 
-    if winning_object != '' and have(winning_object):
-        result = result + '\n' + winning_message
-        end_game()
     if post_handler:
         result = result + post_handler()
     return result
