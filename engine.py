@@ -8,6 +8,8 @@ game_map = {}
 location = ''
 game_over = False
 post_handler = None
+winning_object = ''
+winning_message = ''
 
 
 def set_post_command_handler(h):
@@ -15,10 +17,17 @@ def set_post_command_handler(h):
     post_handler = h
 
 
+def set_goal(object, message):
+    global winning_message, winning_object
+    winning_message = message
+    winning_object = object
+
+
 def set_debug(v):
     global debug
     debug = v
     set_debug_locations()
+
 
 def place_objects(v):
     global locations
@@ -27,19 +36,21 @@ def place_objects(v):
     locations = {}
     objects = []
     non_debug_locations = {}
-    for object in v.iterkeys():
+    for object in v.keys():
         objects.append(object)
         non_debug_locations[object] = locations[object] = v[object]
 
     set_debug_locations()
 
+
 def add_object(name, location):
     global objects, locations, non_debug_locations
     if location not in game_map:
-        print 'Unknown location %s' % location
+        print('Unknown location %s' % location)
         return
     objects.append(name)
     locations[name] = non_debug_locations[name] = location
+
 
 def set_debug_locations():
     global locations, non_debug_locations, objects
@@ -49,6 +60,7 @@ def set_debug_locations():
         else:
             locations[object] = non_debug_locations[object]
 
+
 def add_location(name, description):
     """
     Add a location to map with the name 'name'. 'description' is what
@@ -57,29 +69,32 @@ def add_location(name, description):
     global game_map
     game_map[name] = [ description, []]
 
+
 def add_route(start, direction, type, destination, enabled):
     """
     Add a connection between start and destination, which you get to
     by going via direction. 'type' describes the portal.
     """
     global game_map
-    if not start in game_map:
-        print '%s is not a valid location' % start
+    if start not in game_map:
+        print('%s is not a valid location' % start)
     elif not destination in game_map:
-        print '%s is not a valid location' % destination
+        print('%s is not a valid location' % destination)
     else:
         game_map[start][1].append([direction, type, destination, enabled])
 
+
 def enable_route(start, direction):
     global game_map
-    if not start in game_map:
-        print '%s is not a valid location' % start
+    if start not in game_map:
+        print('%s is not a valid location' % start)
     else:
         routes = game_map[start][1]
         for route in routes:
             if route[0] == direction:
                 route[3] = True
                 break
+
 
 def set_location(v):
     """
@@ -88,11 +103,14 @@ def set_location(v):
     global location
     location = v
 
+
 def describe_location(location, game_map):
     return game_map[location][0] + '\n'
 
+
 def describe_path(path):
     return 'There is a %s going %s from here.\n' % (path[1], path[0])
+
 
 def describe_paths(location, game_map):
     result = ''
@@ -100,8 +118,10 @@ def describe_paths(location, game_map):
         result = result + describe_path(path)
     return result
 
+
 def is_at(object, location, object_locations):
     return object in object_locations and object_locations[object] == location
+
 
 def describe_floor(location, objects, object_locations):
     result = ''
@@ -110,10 +130,12 @@ def describe_floor(location, objects, object_locations):
             result = result + ('You see a %s on the floor.\n' % object)
     return result
 
+
 def look():
     return describe_location(location, game_map) + \
         describe_paths(location, game_map) + \
         describe_floor(location, objects, locations)
+
 
 def walk(direction):
     global location
@@ -125,6 +147,7 @@ def walk(direction):
             return look()
     return 'You cannot go that way.\n'
 
+
 def pickup(object):
     #print 'Try get ', object, ' locations ', locations, 'current', location
     if is_at(object, location, locations):
@@ -132,6 +155,7 @@ def pickup(object):
         return 'You are now carrying the %s.\n' % object
     else:
         return 'You cannot get that.\n'
+
 
 def drop(object):
     if is_at(object, 'body', locations):
@@ -148,7 +172,7 @@ def have(object):
 def inventory():
     for object in objects:
         if have(object):
-            print object
+            print(object)
 
 
 def conditional_game_action(command, subject, object, place, need_subject, flag,
@@ -195,9 +219,6 @@ commands1 = {
 
 commands2 = {}
 
-def add_commands(c):
-    global commands
-    commands.update(c)
 
 def add_command(name, handler, num_args):
     """
@@ -216,8 +237,9 @@ def add_command(name, handler, num_args):
         elif num_args == 2:
             commands2[verb] = handler
         else:
-            print 'num_args must be 0, 1 or 2'
+            print('num_args must be 0, 1 or 2')
             break
+
 
 def end_game():
     global game_over
@@ -239,14 +261,13 @@ def execute(line):
 
     # remove tokens that are just fluff, like 'around', 'to'
 
-    tokens = [word for word in tokens if not word in ['around', 'to', 'on', 'in', 'the', 'a']]
+    tokens = [word for word in tokens if word not in
+               ['around', 'to', 'on', 'in', 'the', 'a']]
     if 'with' in tokens:
         # Remove the 'with' and reverse subject/object
-        tokens = reversed([word for word in tokens if not word in ['with']])
+        tokens = list(reversed([word for word in tokens if word not in ['with']]))
 
-        tokens = [word for word in tokens if not word in ['with']]
-
-    if len(tokens) == 0:
+    if not tokens:
         if verb in commands0:
             result = commands0[verb]()
         elif verb in commands1 or verb in commands2:
@@ -270,34 +291,37 @@ def execute(line):
         else:
             return 'I don\'t know how to %s.\n' % line
 
+    if winning_object != '' and have(winning_object):
+        result += '\n' + winning_message
+        end_game()
+
     if post_handler:
         result = result + post_handler()
     return result
 
 
 def run_game():
-    print look()
+    print(look())
 
     while not game_over:
-        line = raw_input()
-        print execute(line)
+        line = input()
+        print(execute(line))
+
 
 def replay(actions):
     for action in actions:
-        print action
-        print execute(action)
+        print(action)
+        print(execute(action))
+
 
 def test(steps):
     i = 0
     for step in steps:
         result = execute(step[0])
-        if result == step[1]:
-            print 'Pass ', i
+        if sorted(result) == sorted(step[1]):
+            print('Pass ', i)
         else:
-            print 'Fail %d:\n\tExpected [%s]\n\tActual: [%s]' % (i, step[1], result)
+            print('Fail %d:\n\tExpected [%s]\n\tActual: [%s]' % (i, step[1], result))
             break
         i = i + 1
-
-
-
 

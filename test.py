@@ -1,7 +1,7 @@
 __author__ = 'gram'
 
-from engine import replay, test
-import spels
+from spels import test
+
 
 test([
     [ 'get chain', 'You cannot get that.\n'],
@@ -68,3 +68,4 @@ You see a cake on the floor.
 YES! CAKE! YOU WIN THE GAME 100000000 TIMES!!!
 ''']]
 )
+
