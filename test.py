@@ -1,9 +1,9 @@
 __author__ = 'gram'
 
-from spels import test
+from spels import SpellGame
 
 
-test([
+SpellGame().test([
     [ 'get chain', 'You cannot get that.\n'],
     [ 'get egg', 'You cannot get that.\n' ],
     [ 'go west', '''You are in a beautiful garden - there is a well in front of you.
